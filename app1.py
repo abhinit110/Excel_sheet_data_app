@@ -25,11 +25,14 @@ def main():
             st.success("File loaded successfully!")
             st.write("### Data")
             st.dataframe(data)
-            
+            st.write("### Column Names")
+            st.write(data.columns.tolist())
+            st.write("### Summary Statistics")
+            st.write(data.describe())
 
             # Identify categories based on 'Title'
-            voc = data['Title'].str.contains('VOC', case=True, na=False)
-            mr = data['Title'].str.contains('MR', case=True, na=False)
+            voc = data['Title'].astype(str).str.contains('VOC', case=True, na=False)
+            mr = data['Title'].astype(str).str.contains('MR', case=True, na=False)
             others = ~(voc | mr)
 
             # Count number of rows in each category
@@ -44,8 +47,8 @@ def main():
 
             # Define a function to calculate the analysed, solved, and CL counts
             def calculate_counts(category):
-                solved = data[category]['Resolved by'].str.contains('/data protocol/', case=False, na=False)
-                analysed = data[category]['Comment'].str.contains('/data protocol/', case=False, na=False)
+                solved = data[category]['Resolved by'].astype(str).str.contains('/data protocol/', case=False, na=False)
+                analysed = data[category]['Comment'].astype(str).str.contains('/data protocol/', case=False, na=False)
                 cl_not_empty = data[category]['CL Number'].notna()
                 
                 analysed_only = analysed & ~solved
@@ -85,13 +88,19 @@ def main():
             cl_counts = [voc_cl_count, mr_cl_count, others_cl_count]
 
             for i, category in enumerate(categories):
-                ax[i].bar(['Analysed', 'Solved', 'CL counts'], [analysed_counts[i], solved_counts[i], cl_counts[i]], color=['blue', 'green', 'orange'])
+                counts = [analysed_counts[i], solved_counts[i], cl_counts[i]]
+                bars = ax[i].bar(['Analysed', 'Solved', 'CL counts'], counts, color=['blue', 'green', 'orange'])
                 ax[i].set_title(f'{category} PLM\'s', fontsize=10)
                 ax[i].tick_params(axis='x', labelsize=6)
                 ax[i].tick_params(axis='y', labelsize=6)
                 ax[i].yaxis.set_major_locator(plt.MaxNLocator(integer=True))  # Use only natural numbers as indexes
                 ax[i].set_ylabel('Count', fontsize=8)
-            
+                
+                # Add count labels on top of the bars
+                for bar in bars:
+                    height = bar.get_height()
+                    ax[i].text(bar.get_x() + bar.get_width() / 2.0, height, f'{int(height)}', ha='center', va='bottom', fontsize=8)
+
             st.pyplot(fig)
 
 if __name__ == "__main__":
